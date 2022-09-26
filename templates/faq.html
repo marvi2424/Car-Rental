@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+
+{% block title %}
+ FAQ
+{% endblock %}
+
+{% block main %}
+
+    <div class="container">
+       <h4 class="text-center"><span class="text-muted">Reqirements</h4>
+        <hr class="invisiblehr">
+        {% for requirement in requirements %}
+      <div class="accordion accordion-flush" id="accordionFlushExample{{ requirement.id }}">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="flush-heading{{ requirement.id }}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse{{ requirement.id }}" aria-expanded="false" aria-controls="flush-collapse{{ requirement.id }}">
+              {{ requirement.question }}
+            </button>
+          </h2>
+          <div id="flush-collapse{{ requirement.id }}" class="accordion-collapse collapse" aria-labelledby="flush-heading{{ requirement.id }}" data-bs-parent="#accordionFlushExample{{ requirement.id }}">
+            <div class="accordion-body">{{ requirement.answer}}</div>
+          </div>
+        </div>
+          {% endfor %}
+
+          <hr class="invisiblehr">
+          <h4 class="text-center"><span class="text-muted">Reservations</h4>
+            <hr class="invisiblehr">
+            {% for reservation in reservations %}
+          <div class="accordion accordion-flush" id="accordionFlushExample{{ reservation.id }}">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="flush-heading{{ reservation.id }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse{{ reservation.id }}" aria-expanded="false" aria-controls="flush-collapse{{ reservation.id }}">
+                  {{ reservation.question }}
+                </button>
+              </h2>
+              <div id="flush-collapse{{ reservation.id }}" class="accordion-collapse collapse" aria-labelledby="flush-heading{{ reservation.id }}" data-bs-parent="#accordionFlushExample{{ reservation.id }}">
+                <div class="accordion-body">{{ reservation.answer}}</div>
+              </div>
+            </div>
+              {% endfor %}
+
+              <hr class="invisiblehr">
+              <h4 class="text-center"><span class="text-muted">Insurance</h4>
+                <hr class="invisiblehr">
+                {% for insure in insurance %}
+              <div class="accordion accordion-flush" id="accordionFlushExample{{ insure.id }}">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="flush-heading{{ insure.id }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapse{{ insure.id }}" aria-expanded="false" aria-controls="flush-collapse{{ insure.id }}">
+                      {{ insure.question }}
+                    </button>
+                  </h2>
+                  <div id="flush-collapse{{ insure.id }}" class="accordion-collapse collapse" aria-labelledby="flush-heading{{ insure.id }}" data-bs-parent="#accordionFlushExample{{ insure.id }}">
+                    <div class="accordion-body">{{ insure.answer}}</div>
+                  </div>
+                </div>
+                  {% endfor %}
+    </div>
+
+{% endblock %}
