@@ -31,7 +31,12 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=1)
 Session(app)
 
 # Configure CS50 library to use Sqlite database
-db = SQL("sqlite:///rental.db")
+uri = os.getenv(
+    "postgres://mzszcpzmsjwgzq:4cd0390ff97b2a22f78268b5ece510c558ec7855e4c9a5406ae1f411718cfdea@ec2-63-32-248-14.eu-west-1.compute.amazonaws.com:5432/dd1s60pjchbohn"
+)
+if uri.startswith("postgres://"):
+    uri = uri.replace("postgres://", "postgresql://")
+db = SQL(uri)
 
 # Custom filter
 app.jinja_env.filters["date"] = strdate_to_d
