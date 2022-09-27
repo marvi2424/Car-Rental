@@ -31,6 +31,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=1)
 Session(app)
 
 # Configure CS50 library to use Sqlite database
+
 uri = os.getenv("DATABASE_URL")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
