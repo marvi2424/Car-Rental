@@ -14,7 +14,7 @@ from flask_session import Session
 from cs50 import SQL
 import datetime
 from datetime import date, timedelta
-from helpers import compare_dates, strdate, strdate_to_d, euro, total_Days
+from helpers import compare_dates, strdate, strdate_to_d, euro, total_Days, is_date
 from dateutil.relativedelta import relativedelta
 
 
@@ -32,7 +32,7 @@ Session(app)
 
 # Configure CS50 library to use Sqlite database
 
-uri = os.getenv("DATABASE_URL")
+uri = "postgres://qprsriyswpejle:afaa952d9c44819004dad1e554b6400c307d8115ee9f20f215b6436a4e925589@ec2-34-241-90-235.eu-west-1.compute.amazonaws.com:5432/d1s3nk1mua8icr"
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
 db = SQL(uri)
@@ -146,6 +146,12 @@ def cars():
                 max_date_r=max_date_r,
                 min_date_r=min_date_r,
             )
+
+        # Check if date is valid
+        if pickupdate and releasedate:
+            if not is_date(pickupdate) or not is_date(releasedate):
+                flash("Not a valid date")
+                return redirect("/cars")
 
         # If user submits date form check for avaiable cars
 
@@ -328,6 +334,11 @@ def create_checkout_session():
             or not releasehour
         ):
             flash("Complete the form!")
+            return redirect("/book")
+
+        # Check if pickupdate and release date are in date format(yyyy-mm-dd)
+        if is_date(pickupdate) == False or is_date(releasedate) == False:
+            flash("Enter a valid date")
             return redirect("/book")
 
         # Calculate total days

@@ -79,3 +79,23 @@ def total_Days(pickupdate, releasedate):
     total_days = (d1 - d0).days
 
     return total_days
+
+
+# Check if string is date in yyyy-mm-dd format
+
+
+def is_date(string):
+
+    if len(string) != 10:
+        return False
+
+    elif not string[0:4].isdigit():
+        return False
+
+    elif string[4] != "-" or string[7] != "-":
+        return False
+
+    elif not string[5:7].isdigit() or not string[8:].isdigit():
+        return False
+
+    return True
