@@ -1,4 +1,4 @@
-from datetime import date
+import datetime
 
 
 def compare_dates(date1, date2):
@@ -10,7 +10,7 @@ def compare_dates(date1, date2):
         year = int(x[0])
         month = int(x[1])
         day = int(x[2])
-        date1 = date(year, month, day)
+        date1 = datetime.date(year, month, day)
 
     x = date2.split("-")
     year = int(x[0])
@@ -19,7 +19,7 @@ def compare_dates(date1, date2):
 
     # Convert
 
-    date2 = date(year, month, day)
+    date2 = datetime.date(year, month, day)
 
     if date1 > date2:
         return 0
@@ -74,8 +74,8 @@ def total_Days(pickupdate, releasedate):
     hour = 10
     hour = 10
     # Calculate days
-    d0 = date(pickup_year, pickup_month, pickup_day)
-    d1 = date(release_year, release_month, release_day)
+    d0 = datetime.date(pickup_year, pickup_month, pickup_day)
+    d1 = datetime.date(release_year, release_month, release_day)
     total_days = (d1 - d0).days
 
     return total_days
@@ -86,16 +86,8 @@ def total_Days(pickupdate, releasedate):
 
 def is_date(string):
 
-    if len(string) != 10:
+    try:
+        datetime.datetime.strptime(string, "%Y-%m-%d")
+        return True
+    except ValueError:
         return False
-
-    elif not string[0:4].isdigit():
-        return False
-
-    elif string[4] != "-" or string[7] != "-":
-        return False
-
-    elif not string[5:7].isdigit() or not string[8:].isdigit():
-        return False
-
-    return True

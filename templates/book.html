@@ -83,7 +83,7 @@ Book
 
         {% for book in bookings %}
 
-        <p class="text-center text-md"> {{ book.pickupdate | date }} - {{ book.releasedate | date}} </p>
+        <p class="text-center text-md"> {{ book.pickupdate | date }} - {{ book.returndate | date}} </p>
 
         {% endfor %}
 
@@ -105,21 +105,12 @@ Book
                 <div class="row g-3">
                   <div class="col-12">
                     <label for="fullName" class="form-label">Full name*</label>
-                    <input type="text" class="form-control" id="fullName" name="fullName" placeholder="" value=""
-                      autocomplete="off" required>
+                    <input type="text" class="form-control" id="fullName" name="fullName"
+                      placeholder="Enter your full name" value="" autocomplete="off" required>
                     <div class="invalid-feedback">
-                      Valid first name is required.
+                      Valid full name is required.
                     </div>
                   </div>
-                  <!---
-                  <div class="col-12">
-                    <label for="email" class="form-label">Email* <span class="text-muted">(Optional)</span></label>
-                    <input type="email" class="form-control" id="email" name="email" placeholder="you@example.com"
-                      autocomplete="off" required>
-                    <div class="invalid-feedback">
-                      Please enter a valid email address for shipping updates.
-                    </div>
-                  </div>-->
 
                   <div class="col-12">
                     <label for="pickupdate" class="form-label">Pick up Date*</label>
@@ -150,8 +141,8 @@ Book
                   </div>
 
                   <div class="col-12">
-                    <label for="releasedate" class="form-label">Release date* </label>
-                    <input type="date" class="form-control" id="releasedate" name="releasedate" min="{{ min_date_r}}"
+                    <label for="returndate" class="form-label">Return date* </label>
+                    <input type="date" class="form-control" id="returndate" name="returndate" min="{{ min_date_r}}"
                       max="{{ max_date_r}}" required>
                     <div class="invalid-feedback">
                       Please enter valid date
@@ -159,7 +150,7 @@ Book
                   </div>
 
                   <div class="col-12">
-                    <label for="releasehour" class="form-label">Release Hour*</label>
+                    <label for="releasehour" class="form-label">Return Hour*</label>
                     <select class="form-select" id="releasehour" name="releasehour">
                       {% for i in range(6,24) %}
 
