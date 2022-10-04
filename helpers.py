@@ -1,4 +1,12 @@
 import datetime
+from dateutil.relativedelta import relativedelta
+
+date_limits = {
+    "max_p": datetime.date.today() + relativedelta(months=+1, days=+1),
+    "min_p": datetime.date.today() + relativedelta(days=+1),
+    "max_r": datetime.date.today() + relativedelta(months=+1, days=+2),
+    "min_r": datetime.date.today() + relativedelta(days=+2),
+}
 
 
 def compare_dates(date1, date2):
@@ -42,7 +50,7 @@ def strdate(date):
     return year + month + day
 
 
-# Convert from yyyymmdd to mm/dd/yyyy
+# Convert from yyyymmdd to dd/mm/yyyy
 
 
 def strdate_to_d(date):
@@ -50,11 +58,11 @@ def strdate_to_d(date):
     month = date[4:6]
     day = date[6:8]
 
-    return month + "/" + day + "/" + year
+    return day + "/" + month + "/" + year
 
 
 def euro(value):
-    """Format value as USD."""
+    """Format value as Euro."""
     return f"€{value:,.2f}"
 
 
@@ -71,8 +79,6 @@ def total_Days(pickupdate, releasedate):
     release_month = int(x[1])
     release_day = int(x[2])
 
-    hour = 10
-    hour = 10
     # Calculate days
     d0 = datetime.date(pickup_year, pickup_month, pickup_day)
     d1 = datetime.date(release_year, release_month, release_day)

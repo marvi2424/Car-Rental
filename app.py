@@ -1,4 +1,5 @@
 import os
+from random import randrange
 import stripe
 
 from flask import (
@@ -21,6 +22,7 @@ from helpers import (
     euro,
     total_Days,
     is_date,
+    date_limits,
 )
 from dateutil.relativedelta import relativedelta
 import time
@@ -28,19 +30,19 @@ import time
 
 # Configure application
 app = Flask(__name__)
-
+"""
 # Ensure templates are auto-reloaded
-app.config["Templates_Auto_Reload"] = True
+app.config["Templates_Auto_Reload"] = True"""
 
 # Configure session to use filesystem
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=5)
 Session(app)
 
 # Configure CS50 library to use database
 
 uri = os.getenv("DATABASE_URL")
+uri = "postgres://qprsriyswpejle:afaa952d9c44819004dad1e554b6400c307d8115ee9f20f215b6436a4e925589@ec2-34-241-90-235.eu-west-1.compute.amazonaws.com:5432/d1s3nk1mua8icr"
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
 db = SQL(uri)
@@ -81,19 +83,13 @@ def after_request(response):
 
 @app.route("/", methods=["GET"])
 def index():
+
     return render_template("index.html")
 
 
-@app.route("/cars", methods=["GET", "POST"])
-def cars():
+@app.route("/check", methods=["GET"])
+def check():
 
-    # If user comes back from create-checkout-session
-    if "checkout_id" in session:
-        db.execute(
-            "DELETE FROM pending_bookings WHERE checkout_id = ?", session["checkout_id"]
-        )
-
-    # Delete rows from active booking table when release date has passed
     now = datetime.datetime.now()
     year = now.year
     month = now.month
@@ -107,69 +103,74 @@ def cars():
         current_date = str(year) + str(month) + str(day)
 
     db.execute(
-        "DELETE FROM active_bookings WHERE returndate  <= ? AND releasehour < ?",
+        "DELETE FROM active_bookings WHERE returndate  <= ? AND returnhour < ?",
         current_date,
         hour,
     )
 
     # Min and max date
-    max_date_p = date.today() + relativedelta(months=+1, days=+1)
-    min_date_p = date.today() + relativedelta(days=+1)
+    max_date_p = date_limits["max_p"]
+    min_date_p = date_limits["min_p"]
 
-    max_date_r = date.today() + relativedelta(months=+1, days=+2)
-    min_date_r = date.today() + relativedelta(days=+2)
+    max_date_r = date_limits["max_r"]
+    min_date_r = date_limits["min_r"]
+
+    if request.method == "GET":
+
+        # If user submits date form check for avaiable cars
+
+        return render_template(
+            "check.html",
+            min_date_p=min_date_p,
+            max_date_p=max_date_p,
+            max_date_r=max_date_r,
+            min_date_r=min_date_r,
+        )
+
+
+@app.route("/cars", methods=["GET", "POST"])
+def cars():
+
+    now = datetime.datetime.now()
+    year = now.year
+    month = now.month
+    day = now.day
+    hour = now.hour
+
+    # Convert date to yyyymmdd str format to run sql queries
+    if month < 10:
+        current_date = str(year) + "0" + str(month) + str(day)
+    else:
+        current_date = str(year) + str(month) + str(day)
+
+    db.execute(
+        "DELETE FROM active_bookings WHERE returndate  <= ? AND returnhour < ?",
+        current_date,
+        hour,
+    )
+
+    # Min and max date
+    max_date_p = date_limits["max_p"]
+    min_date_p = date_limits["min_p"]
+
+    max_date_r = date_limits["max_r"]
+    min_date_r = date_limits["min_r"]
 
     # If user reaches via POST
-    if request.method == "POST":
 
-        # Get car id that the user wants to reserve
-        car_id = request.form.get("car_id")
-
-        # Redirect if user submits form without complete input
-        if not car_id:
-            return redirect("/cars")
-
-        session["car_id"] = car_id
-
-        # Check if the car id is in database (the user can change the id input with dev tools)
-        car = db.execute("SELECT * FROM cars WHERE id = ?", car_id)
-
-        if len(car) != 1:
-            flash("ERROR")
-            cars = db.execute(
-                "SELECT * FROM cars WHERE id NOT IN (SELECT car_id FROM active_bookings)"
-            )
-
-            return render_template("cars.html", cars=cars)
-
-        # Redirect to book page
-        return redirect("/book")
-
-    # Via Get
-    else:
-        # Get pickup and release date
+    if request.method == "GET":
+        # Get pickup and return date
         pickupdate = request.args.get("pickupdate")
         returndate = request.args.get("returndate")
 
         # Redirect if user submits form without complete input
         if not pickupdate or not returndate:
-            cars = db.execute(
-                "SELECT * FROM cars WHERE id NOT IN (SELECT car_id FROM active_bookings)"
-            )
-            return render_template(
-                "cars.html",
-                cars=cars,
-                min_date_p=min_date_p,
-                max_date_p=max_date_p,
-                max_date_r=max_date_r,
-                min_date_r=min_date_r,
-            )
+            return redirect("/check")
 
         # Check if date is valid
-        if pickupdate and returndate:
-            if not is_date(pickupdate) or not is_date(returndate):
-                flash("Not a valid date")
-                return redirect("/cars")
+        if not is_date(pickupdate) or not is_date(returndate):
+            flash("Not a valid date")
+            return redirect("/check")
 
         # If user submits date form check for avaiable cars
 
@@ -181,15 +182,18 @@ def cars():
         # Error checking
         if compare_dates(str(pickupdate), returndate) == 0:
             flash("Returndate must be after pickupdate")
-            return redirect("/cars")
+            return redirect("/check")
 
         elif bool_min_p == 0 or bool_max_p == 1 or bool_min_r == 0 or bool_max_r == 1:
             flash("Incorrect Date!")
-            return redirect("/cars")
+            return redirect("/check")
 
         elif total_Days(pickupdate, returndate) <= 0:
             flash("You must reserve for at least one day")
-            return redirect("/cars")
+            return redirect("/check")
+
+        session["pickupdate"] = pickupdate
+        session["returndate"] = returndate
 
         # Check for available dates
         available_cars = db.execute(
@@ -202,70 +206,68 @@ def cars():
 
         if len(available_cars) == 0:
             flash("No availble cars for these dates")
-            return redirect("/cars")
+            return redirect("/check")
 
-        return render_template(
-            "cars.html",
-            cars=available_cars,
-            min_date_p=min_date_p,
-            max_date_p=max_date_p,
-            max_date_r=max_date_r,
-            min_date_r=min_date_r,
-        )
+        return render_template("cars.html", cars=available_cars)
 
 
-@app.route("/book", methods=["GET"])
-def book():
+@app.route("/reserve", methods=["GET"])
+def reserve():
 
-    # If user comes back from create-checkout-session
-    if "checkout_id" in session:
-        db.execute(
-            "DELETE FROM pending_bookings WHERE checkout_id = ?", session["checkout_id"]
-        )
-
-    # Get car id
-    if "car_id" not in session or len(session["car_id"]) == 0:
-        return redirect("/cars")
-
-    car_id = session["car_id"]
-
-    max_date_p = date.today() + relativedelta(months=+1, days=+1)
-    min_date_p = date.today() + relativedelta(days=+1)
-
-    max_date_r = date.today() + relativedelta(months=+1, days=+2)
-    min_date_r = date.today() + relativedelta(days=+2)
+    if (
+        "pickupdate" not in session
+        or "returndate" not in session
+        or not session["pickupdate"]
+        or not session["returndate"]
+    ):
+        flash("")
+        return redirect("/check")
 
     # Via GET
     if request.method == "GET":
 
-        # If user goes to book page without choosing a car redirect to /cars
-        if not session["car_id"]:
-            return redirect("/cars")
+        # If user goes to reserve page without choosing a car redirect to /cars
+        car_id = request.args.get("car_id")
+
+        if not car_id:
+            return redirect(
+                url_for(
+                    "cars",
+                    pickupdate=session["pickupdate"],
+                    returndate=session["returndate"],
+                )
+            )
 
         # Get data of selected car
         car = db.execute("SELECT * FROM cars WHERE id = ?", car_id)
 
         if len(car) == 0:
             flash("INVALID CAR ID")
-            return redirect("/cars")
+            return redirect(
+                url_for("cars"),
+                pickupdate=session["pickupdate"],
+                returndate=session["returndate"],
+            )
+
+        session["car_id"] = car_id
 
         c_photos = db.execute("SELECT * FROM photos WHERE car_id = ?", car_id)
+        day_price = int(car[0]["day_price"])
+        total_days = total_Days(session["pickupdate"], session["returndate"])
 
-        # Check if car is booked during some periods of time
-        bookings = db.execute(
-            "SELECT pickupdate, returndate FROM active_bookings WHERE car_id = ? ORDER BY pickupdate ASC, returndate ASC",
-            car_id,
-        )
+        total_price = day_price * total_days
+        prepay = 10 * total_days
+        left_to_pay = total_price - prepay
 
         return render_template(
-            "book.html",
+            "reserve.html",
             c_photos=c_photos,
             car=car,
-            min_date_p=min_date_p,
-            max_date_p=max_date_p,
-            max_date_r=max_date_r,
-            min_date_r=min_date_r,
-            bookings=bookings,
+            pickupdate=strdate(session["pickupdate"]),
+            returndate=strdate(session["returndate"]),
+            total_price=total_price,
+            prepay=prepay,
+            left_to_pay=left_to_pay,
         )
 
 
@@ -320,77 +322,51 @@ def create_checkout_session():
 
     # Get car id
     if "car_id" not in session or len(session["car_id"]) == 0:
-        return redirect("/cars")
+        return redirect("/check")
 
     car_id = session["car_id"]
 
+    if "pickupdate" not in session or "returndate" not in session:
+        return redirect("/check")
+
     # Get price of car per day
     day_price = db.execute("SELECT day_price FROM cars WHERE id = ?", car_id)
-
-    # Max and Min date
-
-    max_date_p = date.today() + relativedelta(months=+1, days=+1)
-    min_date_p = date.today() + relativedelta(days=+1)
-
-    max_date_r = date.today() + relativedelta(months=+1, days=+2)
-    min_date_r = date.today() + relativedelta(days=+2)
 
     if request.method == "POST":
 
         # Get form fields
         name = request.form.get("fullName")
-        pickupdate = request.form.get("pickupdate")
+        pickupdate = session["pickupdate"]
         pickuphour = request.form.get("pickuphour")
-        returndate = request.form.get("returndate")
-        releasehour = request.form.get("releasehour")
+        returndate = session["returndate"]
+        returnhour = request.form.get("returnhour")
 
         # Ensure that values are submitet
-        if (
-            not name
-            or not pickupdate
-            or not pickuphour
-            or not returndate
-            or not releasehour
-        ):
+        if not name or not pickuphour or not returnhour:
             flash("Complete the form!")
-            return redirect("/book")
-
-        # Check if pickupdate and release date are in date format(yyyy-mm-dd)
-        if is_date(pickupdate) == False or is_date(returndate) == False:
-            flash("Enter a valid date")
-            return redirect("/book")
+            return redirect(url_for("reserve", car_id=car_id))
+        elif not session["pickupdate"] or not session["returndate"]:
+            flash("Select pickup and return date")
+            return redirect("/check")
+        # Sql injection check
+        elif name.lower() == "null":
+            flash("Sorry your name can't be NULL")
+            return redirect(url_for("resevere", car_id=car_id))
 
         # Calculate total days
         total_days = total_Days(pickupdate, returndate)
-        print("-------------TOTAL DAYS--------------")
-        print(total_days)
 
-        # Check if input is invalid
-
-        bool_min_p = compare_dates(min_date_p, pickupdate)
-        bool_max_p = compare_dates(max_date_p, pickupdate)
-        bool_min_r = compare_dates(min_date_r, returndate)
-        bool_max_r = compare_dates(max_date_r, returndate)
-
-        # Check if pickupdate is after than release date
-        if total_days <= 0:
-            flash("Returndate must be after pickupdate!")
-            return redirect("/book")
-
-        elif bool_min_p == 0 or bool_max_p == 1 or bool_min_r == 0 or bool_max_r == 1:
-            flash("Incorrect Date Try Again")
-            return redirect("/book")
-
-        elif (
+        # Error checking
+        if (
             int(pickuphour) < 6
             or int(pickuphour) > 23
-            or int(releasehour) < 6
-            or int(releasehour) > 23
+            or int(returnhour) < 6
+            or int(returnhour) > 23
         ):
-            flash("Incorrect Hour")
-            return redirect("/book")
+            flash("Car rental is not opened during those hours")
+            return redirect(url_for("reserve", car_id=car_id))
 
-        # Check if car is booked
+        # (Error checking) Check if car is booked
 
         check = db.execute(
             "SELECT pickupdate, returndate FROM active_bookings WHERE car_id  = ? AND  ((? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate))",
@@ -407,7 +383,7 @@ def create_checkout_session():
                 flash(f"Car is not available during {pdate} - {rdate} ! ")
                 break
 
-            return redirect("/book")
+            return redirect("/reserve")
 
         # Check if car is currently being booked
 
@@ -424,7 +400,7 @@ def create_checkout_session():
             flash(
                 "Oops someone is currently reserving this car in those dates.Check again after 30 minutes or pick other dates."
             )
-            return redirect("/book")
+            return redirect("/reserve")
 
         # Epoch time
         epoch = int(time.time())
@@ -434,6 +410,14 @@ def create_checkout_session():
 
         # Get total amount
         total_amount = total_days * day_price[0]["day_price"]
+
+        while True:
+            user_id = randrange(999999999)
+            same_user_id = db.execute(
+                "SELECT user_id FROM active_bookings WHERE user_id = ?", user_id
+            )
+            if len(same_user_id) == 0:
+                break
 
         try:
 
@@ -452,8 +436,9 @@ def create_checkout_session():
                 payment_method_types=[
                     "card",
                 ],
+                metadata={"user_id": user_id},
                 expires_at=expires,
-                success_url=url_for("thanks", _external=True),
+                success_url=url_for("thanks", user_id=user_id, _external=True),
                 cancel_url=url_for("cars", _external=True),
             )
 
@@ -462,12 +447,12 @@ def create_checkout_session():
 
         # Insert the data in pending booking table
         db.execute(
-            "INSERT INTO pending_bookings (name, pickupdate, pickuphour, returndate, releasehour, car_id, total_days, total_price, checkout_id, created) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO pending_bookings (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price, checkout_id, created) VALUES(?,?,?,?,?,?,?,?,?,?)",
             name,
             strdate(pickupdate),
             pickuphour,
             strdate(returndate),
-            releasehour,
+            returnhour,
             car_id,
             total_days,
             total_amount,
@@ -475,15 +460,44 @@ def create_checkout_session():
             checkout_session["created"],
         )
 
-        session["checkout_id"] = checkout_session["id"]
-
         return redirect(checkout_session.url, code=303)
 
 
 @app.route("/thanks", methods=["GET"])
 def thanks():
 
-    return render_template("thanks.html")
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return redirect("/")
+
+    data = db.execute("SELECT * FROM active_bookings WHERE user_id = ?", user_id)
+    if len(data) == 0:
+        flash(
+            "Something went wrong.If you were redirected here from checkout page after a successful transaction please contact us right now.Else Ignore this message."
+        )
+        return redirect("/contact")
+
+    car_id = data[0]["car_id"]
+    car_details = db.execute(
+        "SELECT car_name, day_price FROM cars WHERE id = ? ", car_id
+    )
+    car_name = car_details[0]["car_name"]
+    day_price = int(car_details[0]["day_price"])
+
+    left_to_pay = (day_price * int(data[0]["total_days"])) - int(data[0]["prepaid"])
+
+    receipt_url = db.execute(
+        "SELECT receipt_url FROM receipts WHERE payment_intent = ?",
+        data[0]["payment_intent"],
+    )
+
+    return render_template(
+        "thanks.html",
+        data=data,
+        car_name=car_name,
+        left_to_pay=left_to_pay,
+        receipt_url=receipt_url[0]["receipt_url"],
+    )
 
 
 # Webhook
@@ -496,10 +510,12 @@ def webhook():
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+
     except ValueError as e:
         # invalid payload
         print("Invalid payload")
         return "Invalid payload", 400
+
     except stripe.error.SignatureVerificationError as e:
         # invalid signature
         print("Invalid signature")
@@ -515,6 +531,7 @@ def webhook():
 
         email = completed["customer_details"]["email"]
         phone_number = completed["customer_details"]["phone"]
+        user_id = completed["metadata"]["user_id"]
 
         if completed["payment_status"] != "paid":
             print("NOT PAID")
@@ -536,7 +553,7 @@ def webhook():
         pickupdate = user_data[0]["pickupdate"]
         pickuphour = user_data[0]["pickuphour"]
         returndate = user_data[0]["returndate"]
-        releasehour = user_data[0]["releasehour"]
+        returnhour = user_data[0]["returnhour"]
         car_id = user_data[0]["car_id"]
         total_days = user_data[0]["total_days"]
         total_price = user_data[0]["total_price"]
@@ -545,30 +562,36 @@ def webhook():
 
         # Insert user data into booking_history and pending_bookings
         db.execute(
-            "INSERT INTO booking_history (name, email, pickupdate, pickuphour, returndate, releasehour, car_id, total_days, total_price) VALUES(?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO booking_history (name, email, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price) VALUES(?,?,?,?,?,?,?,?,?)",
             name,
             email,
             pickupdate,
             pickuphour,
             returndate,
-            releasehour,
+            returnhour,
             car_id,
             total_days,
             total_price,
         )
 
         db.execute(
-            "INSERT INTO active_bookings (name, pickupdate, pickuphour, returndate, releasehour, car_id, total_days, payment_intent, prepaid, phone_number) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO active_bookings (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, payment_intent, prepaid, phone_number, user_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
             name,
             pickupdate,
             pickuphour,
             returndate,
-            releasehour,
+            returnhour,
             car_id,
             total_days,
             completed["payment_intent"],
             prepaid_warranty,
             phone_number,
+            user_id,
+        )
+
+        db.execute(
+            "INSERT INTO receipts (payment_intent) VALUES (?)",
+            completed["payment_intent"],
         )
 
         # Delete data in pending_bookings table after transaction completed
@@ -586,8 +609,14 @@ def webhook():
 
     elif event_dict["type"] == "charge.succeeded":
         charge = event_dict["data"]["object"]
-        print("----------------Recipt Url---------------------")
-        print(charge["receipt_url"])
+
+        # Store receipt url in database
+
+        db.execute(
+            "INSERT INTO receipts (receipt_url) VALUES (?)  WHERE payment_intent = ?",
+            charge["receipt_url"],
+            charge["payment_intent"],
+        )
 
     elif event_dict["type"] == "payment_intent.payment_failed":
         intent = event_dict["data"]["object"]

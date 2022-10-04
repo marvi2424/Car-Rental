@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block title %}
-Book
+Reserve
 {% endblock %}
 
 {% block main %}
@@ -76,7 +76,7 @@ Book
         <p class="card-text"></p>
         <p class="card-text"><small class="text-muted"></small></p>
         <h5 class="mb-4 text-center">Price per day: {{ c.day_price | euro }}</h5>
-
+        <!---
         {% if len(bookings) != 0 %}
         <p class="text-center text-danger text-lg">NOT AVAILABLE DURING: </p>
         {% endif %}
@@ -85,7 +85,7 @@ Book
 
         <p class="text-center text-md"> {{ book.pickupdate | date }} - {{ book.returndate | date}} </p>
 
-        {% endfor %}
+        {% endfor %}-->
 
 
         {% endfor %}
@@ -111,7 +111,7 @@ Book
                       Valid full name is required.
                     </div>
                   </div>
-
+                  <!--
                   <div class="col-12">
                     <label for="pickupdate" class="form-label">Pick up Date*</label>
                     <input type="date" class="form-control" id="pickupdate" name="pickupdate" min="{{min_date_p}}"
@@ -120,7 +120,7 @@ Book
                     <div class="invalid-feedback">
                       Please enter valid date
                     </div>
-                  </div>
+                  </div>-->
 
                   <div class="col-12">
                     <label for="pickuphour" class="form-label">Pick up Hour*</label>
@@ -139,7 +139,7 @@ Book
                       Please enter valid hour
                     </div>
                   </div>
-
+                  <!--
                   <div class="col-12">
                     <label for="returndate" class="form-label">Return date* </label>
                     <input type="date" class="form-control" id="returndate" name="returndate" min="{{ min_date_r}}"
@@ -147,11 +147,11 @@ Book
                     <div class="invalid-feedback">
                       Please enter valid date
                     </div>
-                  </div>
+                  </div>-->
 
                   <div class="col-12">
                     <label for="releasehour" class="form-label">Return Hour*</label>
-                    <select class="form-select" id="releasehour" name="releasehour">
+                    <select class="form-select" id="returnhour" name="returnhour">
                       {% for i in range(6,24) %}
 
                       {% if i < 10 %} <option value="{{ i }}">0{{ i }}:00</option>
@@ -166,6 +166,57 @@ Book
                       Please enter valid hour
                     </div>
                   </div>
+
+                  <div class="list-wrapper">
+
+                    <div class="red-line"></div>
+
+
+                    <div class="list-item-wrapper">
+                      <div class="list-bullet">1</div>
+                      <div class="list-item">
+                        <div class="list-title">Pickup date: {{ pickupdate | date}}</div>
+                        <div class="list-text">You must show up 10 minutes before pickup hour </div>
+                      </div>
+                    </div>
+
+                    <div class="list-item-wrapper">
+
+                      <div class="list-bullet">2</div>
+                      <div class="list-item">
+                        <div class="list-title">Return date: {{ returndate | date}}</div>
+                        <div class="list-text">You must show up no more than 10 minutes past return hour</div>
+                      </div>
+                    </div>
+
+                    <div class="list-item-wrapper">
+                      <div class="list-bullet">3</div>
+                      <div class="list-item">
+                        <div class="list-title">Total price: {{ total_price | euro }}</div>
+                        <div class="list-text">Total amount you will pay to rent this car.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="list-item-wrapper">
+                      <div class="list-bullet">4</div>
+                      <div class="list-item">
+                        <div class="list-title">Prepay: {{ prepay | euro }}</div>
+                        <div class="list-text">You will have to prepay {{ prepay | euro }} for this reservation.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="list-item-wrapper">
+                      <div class="list-bullet">5</div>
+                      <div class="list-item">
+                        <div class="list-title">Left to pay: {{ left_to_pay | euro }}</div>
+                        <div class="list-text">This is the amount you will pay at the dealership after you reserve
+                          online.</div>
+                      </div>
+                    </div>
+
+                  </div>
                   <h4 class="text-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
                       class="bi bi-geo-alt" viewBox="0 0 16 16">
@@ -173,7 +224,7 @@ Book
                         d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z" />
                       <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
                     </svg>
-                    Tirana
+                    Tirana, Blv 10392
                   </h4>
 
                   <hr class="my-4">

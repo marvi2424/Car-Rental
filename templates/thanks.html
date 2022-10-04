@@ -4,18 +4,44 @@
 {% block title %}
 Thanks
 {% endblock%}
+
 {% block main %}
 
 <div class="container">
     <main>
         <div class="py-5 text-center">
+            {% for d in data %}
+            <h2>Thanks {{d.name}}</h2>
 
-            <h2 class="text-center">Thanks for your purcase</h2>
-            <p class="lead">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum sollicitudin finibus
-                semper. Maecenas faucibus eros a sagittis auctor. Nam est nisi, congue vel nisi quis, pharetra gravida
-                sem. In egestas vitae lectus eu feugiat.</p>
+            <h3> Details of your reservation </h3>
+            <br>
+
+            <p class="font-italic  text-md"> Car: {{car_name}}</p>
+
+            <p class="font-italic  text-md">Pickupdate: {{d.pickupdate | date}}</p>
+
+            <p class="font-italic  text-md">Pickuphour: {{d.pickuphour }}:00 </p>
+
+            <p class="font-italic  text-md">Return date: {{d.returndate | date}} </p>
+
+            <p class="font-italic  text-md">Return hour: {{d.returnhour}}:00 </p>
+
+            <p class="font-italic  text-md">Left to pay {{left_to_pay |euro}} </p>
+
+            <p class="lead">The receipt will be send on your email.</p>
+
+
+            {% endfor %}
+
+            {% if receipt_url != None %}
+            <p class="lead">You can also see it by clicking the link below</p>
+
+            <a href="{{ receipt_url}}" target="_blank" class="btn btn-outline-success">Receipt</a>
+            {% endif %}
 
         </div>
+
     </main>
+
 </div>
 {% endblock %}
