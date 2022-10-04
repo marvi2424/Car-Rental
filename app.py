@@ -589,11 +589,6 @@ def webhook():
             user_id,
         )
 
-        db.execute(
-            "INSERT INTO receipts (payment_intent) VALUES (?)",
-            completed["payment_intent"],
-        )
-
         # Delete data in pending_bookings table after transaction completed
         db.execute("DELETE FROM pending_bookings WHERE id = ?", pending_booking_id)
 
@@ -613,9 +608,9 @@ def webhook():
         # Store receipt url in database
 
         db.execute(
-            "UPDATE receipts SET receipt_url = ? WHERE payment_intent = ?",
-            charge["receipt_url"],
+            "INSERT INTO receipts (payment_intent, receipt_url) VALUES (?,?)",
             charge["payment_intent"],
+            charge["receipt_url"],
         )
 
     elif event_dict["type"] == "payment_intent.payment_failed":
