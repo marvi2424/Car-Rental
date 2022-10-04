@@ -613,7 +613,7 @@ def webhook():
         # Store receipt url in database
 
         db.execute(
-            "INSERT INTO receipts (receipt_url) VALUES (?)  WHERE payment_intent = ?",
+            "UPDATE receipts SET receipt_url = ? WHERE payment_intent = ?",
             charge["receipt_url"],
             charge["payment_intent"],
         )
