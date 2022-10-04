@@ -220,7 +220,7 @@ def reserve():
         or not session["pickupdate"]
         or not session["returndate"]
     ):
-        flash("")
+        flash("Select pickup and return date")
         return redirect("/check")
 
     # Via GET
