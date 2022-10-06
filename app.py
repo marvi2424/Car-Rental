@@ -14,7 +14,6 @@ from flask import (
 from flask_session import Session
 from cs50 import SQL
 import datetime
-from datetime import date, timedelta
 from helpers import (
     compare_dates,
     strdate,
@@ -23,16 +22,13 @@ from helpers import (
     total_Days,
     is_date,
     date_limits,
+    expire_checkout,
 )
-from dateutil.relativedelta import relativedelta
 import time
 
 
 # Configure application
 app = Flask(__name__)
-"""
-# Ensure templates are auto-reloaded
-app.config["Templates_Auto_Reload"] = True"""
 
 # Configure session to use filesystem
 app.config["SESSION_PERMANENT"] = False
@@ -81,12 +77,14 @@ def after_request(response):
 
 
 @app.route("/", methods=["GET"])
+@expire_checkout
 def index():
 
     return render_template("index.html")
 
 
 @app.route("/check", methods=["GET"])
+@expire_checkout
 def check():
 
     now = datetime.datetime.now()
@@ -102,7 +100,7 @@ def check():
         current_date = str(year) + str(month) + str(day)
 
     db.execute(
-        "DELETE FROM active_bookings WHERE returndate  <= ? AND returnhour < ?",
+        "DELETE FROM active_reservations WHERE returndate  <= ? AND returnhour < ?",
         current_date,
         hour,
     )
@@ -128,6 +126,7 @@ def check():
 
 
 @app.route("/cars", methods=["GET", "POST"])
+@expire_checkout
 def cars():
 
     now = datetime.datetime.now()
@@ -143,7 +142,7 @@ def cars():
         current_date = str(year) + str(month) + str(day)
 
     db.execute(
-        "DELETE FROM active_bookings WHERE returndate  <= ? AND returnhour < ?",
+        "DELETE FROM active_reservations WHERE returndate  <= ? AND returnhour < ?",
         current_date,
         hour,
     )
@@ -196,10 +195,12 @@ def cars():
 
         # Check for available dates
         available_cars = db.execute(
-            "SELECT * FROM cars WHERE id NOT IN (SELECT car_id FROM active_bookings WHERE (? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate))",
+            "SELECT * FROM cars WHERE id NOT IN (SELECT car_id FROM active_reservations WHERE (? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate) OR (? < pickupdate AND ? > returndate))",
             strdate(pickupdate),
             strdate(pickupdate),
             strdate(returndate),
+            strdate(returndate),
+            strdate(pickupdate),
             strdate(returndate),
         )
 
@@ -211,6 +212,7 @@ def cars():
 
 
 @app.route("/reserve", methods=["GET"])
+@expire_checkout
 def reserve():
 
     if (
@@ -271,6 +273,7 @@ def reserve():
 
 
 @app.route("/contact", methods=["GET", "POST"])
+@expire_checkout
 def contact():
 
     if request.method == "POST":
@@ -299,6 +302,7 @@ def contact():
 
 
 @app.route("/faq", methods=["GET"])
+@expire_checkout
 def faq():
     # Get FAQ
     requirements = db.execute("SELECT * FROM faq WHERE section = 'Requirements'")
@@ -350,7 +354,7 @@ def create_checkout_session():
         # Sql injection check
         elif name.lower() == "null":
             flash("Sorry your name can't be NULL")
-            return redirect(url_for("resevere", car_id=car_id))
+            return redirect(url_for("reserve", car_id=car_id))
 
         # Calculate total days
         total_days = total_Days(pickupdate, returndate)
@@ -368,11 +372,13 @@ def create_checkout_session():
         # (Error checking) Check if car is booked
 
         check = db.execute(
-            "SELECT pickupdate, returndate FROM active_bookings WHERE car_id  = ? AND  ((? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate))",
+            "SELECT pickupdate, returndate FROM active_reservations WHERE car_id  = ? AND  ((? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate) OR (? < pickupdate AND ? > returndate))",
             car_id,
             strdate(pickupdate),
             strdate(pickupdate),
             strdate(returndate),
+            strdate(returndate),
+            strdate(pickupdate),
             strdate(returndate),
         )
         if len(check) != 0:
@@ -387,35 +393,38 @@ def create_checkout_session():
         # Check if car is currently being booked
 
         check_pending = db.execute(
-            "SELECT pickupdate, returndate FROM pending_bookings WHERE car_id  = ? AND  ((? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate))",
+            "SELECT pickupdate, returndate FROM pending_reservations WHERE car_id  = ? AND  ((? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate) OR (? < pickupdate AND ? > returndate))",
             car_id,
             strdate(pickupdate),
             strdate(pickupdate),
             strdate(returndate),
             strdate(returndate),
+            strdate(pickupdate),
+            strdate(returndate),
         )
 
         if len(check_pending) != 0:
             flash(
-                "Oops someone is currently reserving this car in those dates.Check again after 30 minutes or pick other dates."
+                "Oops someone is currently reserving this car in or between those dates.Check again after 10 minutes or pick other dates."
             )
             return redirect("/reserve")
 
         # Epoch time
         epoch = int(time.time())
 
-        # Expire time will be 30 minutes after creation
+        # Expire time will be 30 minutes after creation(stripe limit is 30 minutes)
         expires = epoch + 30 * 60
 
         # Get total amount
         total_amount = total_days * day_price[0]["day_price"]
 
         while True:
-            user_id = randrange(999999999)
-            same_user_id = db.execute(
-                "SELECT user_id FROM active_bookings WHERE user_id = ?", user_id
+            reservation_id = randrange(999999999)
+            same_reservation_id = db.execute(
+                "SELECT reservation_id FROM active_reservations WHERE reservation_id = ?",
+                reservation_id,
             )
-            if len(same_user_id) == 0:
+            if len(same_reservation_id) == 0:
                 break
 
         try:
@@ -435,9 +444,11 @@ def create_checkout_session():
                 payment_method_types=[
                     "card",
                 ],
-                metadata={"user_id": user_id},
+                metadata={"reservation_id": reservation_id},
                 expires_at=expires,
-                success_url=url_for("thanks", user_id=user_id, _external=True),
+                success_url=url_for(
+                    "thanks", reservation_id=reservation_id, _external=True
+                ),
                 cancel_url=url_for("cars", _external=True),
             )
 
@@ -446,7 +457,7 @@ def create_checkout_session():
 
         # Insert the data in pending booking table
         db.execute(
-            "INSERT INTO pending_bookings (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price, checkout_id, created) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO pending_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price, checkout_id, created) VALUES(?,?,?,?,?,?,?,?,?,?)",
             name,
             strdate(pickupdate),
             pickuphour,
@@ -463,40 +474,95 @@ def create_checkout_session():
 
 
 @app.route("/thanks", methods=["GET"])
+@expire_checkout
 def thanks():
 
-    user_id = request.args.get("user_id")
-    if not user_id:
-        return redirect("/")
+    # Get request
+    if request.method == "GET":
 
-    data = db.execute("SELECT * FROM active_bookings WHERE user_id = ?", user_id)
-    if len(data) == 0:
-        flash(
-            "Something went wrong.If you were redirected here from checkout page after a successful transaction please contact us right now.Else Ignore this message."
+        # Get reservation id
+        reservation_id = request.args.get("reservation_id")
+        if not reservation_id:
+            flash("NO RESERVATION ID")
+            return redirect("/")
+
+        # Get reservation details
+        data = db.execute(
+            "SELECT * FROM active_reservations WHERE reservation_id = ?", reservation_id
         )
-        return redirect("/contact")
+        # Error checking
+        if len(data) == 0 or len(data) > 1:
+            flash(
+                "Something went wrong.If you were redirected here from checkout page after a successful transaction please contact us right now.Else Ignore this message."
+            )
+            return redirect("/contact")
 
-    car_id = data[0]["car_id"]
-    car_details = db.execute(
-        "SELECT car_name, day_price FROM cars WHERE id = ? ", car_id
-    )
-    car_name = car_details[0]["car_name"]
-    day_price = int(car_details[0]["day_price"])
+        # Get car details
+        car_id = data[0]["car_id"]
+        car_details = db.execute(
+            "SELECT car_name, day_price, main_photo_ref FROM cars WHERE id = ? ", car_id
+        )
+        car_name = car_details[0]["car_name"]
+        day_price = int(car_details[0]["day_price"])
 
-    left_to_pay = (day_price * int(data[0]["total_days"])) - int(data[0]["prepaid"])
+        # Amount the person will pay at the dealership
+        left_to_pay = (day_price * int(data[0]["total_days"])) - int(data[0]["prepaid"])
 
-    receipt_url = db.execute(
-        "SELECT receipt_url FROM receipts WHERE payment_intent = ?",
-        data[0]["payment_intent"],
-    )
+        # Reciept url
+        receipt_url = db.execute(
+            "SELECT receipt_url FROM receipts WHERE payment_intent = ?",
+            data[0]["payment_intent"],
+        )
 
-    return render_template(
-        "thanks.html",
-        data=data,
-        car_name=car_name,
-        left_to_pay=left_to_pay,
-        receipt_url=receipt_url[0]["receipt_url"],
-    )
+        return render_template(
+            "thanks.html",
+            data=data,
+            car_name=car_name,
+            left_to_pay=left_to_pay,
+            receipt_url=receipt_url[0]["receipt_url"],
+            main_photo_ref=car_details[0]["main_photo_ref"],
+        )
+
+
+@app.route("/reservations", methods=["GET"])
+@expire_checkout
+def reservations():
+
+    if request.method == "GET":
+        # Get name and reservation Id
+        name = request.args.get("fullname")
+        reservation_id = request.args.get("reservation_id")
+
+        if name and reservation_id:
+
+            # Error checking
+            if not reservation_id.isnumeric() or len(reservation_id) > 9:
+                flash("Not a valid reservation id")
+                return redirect("/reservations")
+            elif name.lower() == "null":
+                flash("Your name can't be null")
+                return redirect("/reservations")
+
+            # Check if reservation exists
+            check = db.execute(
+                "SELECT FROM active_reservations WHERE name = ? AND reservation_id = ?",
+                name,
+                reservation_id,
+            )
+            if len(check) == 0:
+                flash("Reservation doesn't exist")
+                return render_template("reservations.html")
+
+            elif len(check) == 1:
+                return redirect(url_for("thanks", reservation_id=reservation_id))
+            # Error checking: two reservations with same data (p.s unlikely to happen)
+            else:
+                flash(
+                    "Something went wrong. Please contact us if your reservation should be active.Else ignoe this message"
+                )
+                return redirect("/contact")
+        else:
+            return render_template("reservations.html")
 
 
 # Webhook
@@ -530,15 +596,15 @@ def webhook():
 
         email = completed["customer_details"]["email"]
         phone_number = completed["customer_details"]["phone"]
-        user_id = completed["metadata"]["user_id"]
+        reservation_id = completed["metadata"]["reservation_id"]
 
         if completed["payment_status"] != "paid":
             print("NOT PAID")
             return "NOT PAID", 400
 
-        # Get user data from pending_bookings table
+        # Get user data from pending_reservations table
         user_data = db.execute(
-            "SELECT * FROM pending_bookings WHERE checkout_id = ?", completed["id"]
+            "SELECT * FROM pending_reservations WHERE checkout_id = ?", completed["id"]
         )
 
         # Error checking
@@ -559,9 +625,9 @@ def webhook():
 
         prepaid_warranty = 10 * total_days
 
-        # Insert user data into booking_history and pending_bookings
+        # Insert user data into reservations_history and pending_reservations
         db.execute(
-            "INSERT INTO booking_history (name, email, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price) VALUES(?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO reservations_history (name, email, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
             name,
             email,
             pickupdate,
@@ -571,10 +637,11 @@ def webhook():
             car_id,
             total_days,
             total_price,
+            reservation_id,
         )
 
         db.execute(
-            "INSERT INTO active_bookings (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, payment_intent, prepaid, phone_number, user_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, payment_intent, prepaid, phone_number, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
             name,
             pickupdate,
             pickuphour,
@@ -585,18 +652,19 @@ def webhook():
             completed["payment_intent"],
             prepaid_warranty,
             phone_number,
-            user_id,
+            reservation_id,
         )
 
-        # Delete data in pending_bookings table after transaction completed
-        db.execute("DELETE FROM pending_bookings WHERE id = ?", pending_booking_id)
+        # Delete data in pending_reservations table after transaction completed
+        db.execute("DELETE FROM pending_reservations WHERE id = ?", pending_booking_id)
 
     elif event_dict["type"] == "checkout.session.expired":
-        # Delete data in pending_bookings table after sesssion expired
+        # Delete data in pending_reservations table after sesssion expired
         session_expired = event_dict["data"]["object"]
 
         db.execute(
-            "DELETE FROM pending_bookings WHERE checkout_id = ?", session_expired["id"]
+            "DELETE FROM pending_reservations WHERE checkout_id = ?",
+            session_expired["id"],
         )
 
         print("checkout session expired")

@@ -1,5 +1,9 @@
 import datetime
+from functools import wraps
 from dateutil.relativedelta import relativedelta
+import time
+import stripe
+import app as app
 
 date_limits = {
     "max_p": datetime.date.today() + relativedelta(months=+1, days=+1),
@@ -97,3 +101,34 @@ def is_date(string):
         return True
     except ValueError:
         return False
+
+
+def expire_checkout(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Epoch time
+        epoch = int(time.time())
+
+        checkouts = app.db.execute(
+            "SELECT checkout_id, created FROM pending_reservations"
+        )
+        for checkout in checkouts:
+            # Check if session has expired
+            print("------------CREATED---------")
+            print(checkout["created"])
+            if epoch - checkout["created"] >= 10 * 60:
+                checkout_session = stripe.checkout.Session.retrieve(
+                    checkout["checkout_id"]
+                )
+                # Check if session status is open
+                if checkout_session["status"] == "open":
+                    stripe.checkout.Session.expire(checkout["checkout_id"])
+                else:
+                    app.db.execute(
+                        "DELETE FROM pending_reservations WHERE checkout_id = ?",
+                        checkout_session["id"],
+                    )
+
+        return f(*args, **kwargs)
+
+    return decorated_function

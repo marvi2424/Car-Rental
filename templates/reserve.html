@@ -76,17 +76,6 @@ Reserve
         <p class="card-text"></p>
         <p class="card-text"><small class="text-muted"></small></p>
         <h5 class="mb-4 text-center">Price per day: {{ c.day_price | euro }}</h5>
-        <!---
-        {% if len(bookings) != 0 %}
-        <p class="text-center text-danger text-lg">NOT AVAILABLE DURING: </p>
-        {% endif %}
-
-        {% for book in bookings %}
-
-        <p class="text-center text-md"> {{ book.pickupdate | date }} - {{ book.returndate | date}} </p>
-
-        {% endfor %}-->
-
 
         {% endfor %}
 
@@ -111,16 +100,6 @@ Reserve
                       Valid full name is required.
                     </div>
                   </div>
-                  <!--
-                  <div class="col-12">
-                    <label for="pickupdate" class="form-label">Pick up Date*</label>
-                    <input type="date" class="form-control" id="pickupdate" name="pickupdate" min="{{min_date_p}}"
-                      max="{{max_date_p}}" required>
-
-                    <div class="invalid-feedback">
-                      Please enter valid date
-                    </div>
-                  </div>-->
 
                   <div class="col-12">
                     <label for="pickuphour" class="form-label">Pick up Hour*</label>
@@ -139,15 +118,6 @@ Reserve
                       Please enter valid hour
                     </div>
                   </div>
-                  <!--
-                  <div class="col-12">
-                    <label for="returndate" class="form-label">Return date* </label>
-                    <input type="date" class="form-control" id="returndate" name="returndate" min="{{ min_date_r}}"
-                      max="{{ max_date_r}}" required>
-                    <div class="invalid-feedback">
-                      Please enter valid date
-                    </div>
-                  </div>-->
 
                   <div class="col-12">
                     <label for="releasehour" class="form-label">Return Hour*</label>

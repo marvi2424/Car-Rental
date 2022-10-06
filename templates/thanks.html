@@ -13,31 +13,102 @@ Thanks
             {% for d in data %}
             <h2>Thanks {{d.name}}</h2>
 
-            <h3> Details of your reservation </h3>
-            <br>
+            <div class="card-group">
+                <div class="card">
+                    <img class="card-img-top" src="{{main_photo_ref}}" alt="Card image cap">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ car_name }}</h5>
+                    </div>
+                </div>
+                <div class="card">
 
-            <p class="font-italic  text-md"> Car: {{car_name}}</p>
+                    <div class="card-body">
+                        <h4 class="card-title"><b>Details of your reservation</b></h4>
+                        <br>
+                        <p class="font-italic  text-md"><svg xmlns="http://www.w3.org/2000/svg" width="1.7em"
+                                height="1.7em" viewBox="0 0 512 512">
+                                <path
+                                    d="M469.71,234.6c-7.33-9.73-34.56-16.43-46.08-33.94s-20.95-55.43-50.27-70S288,112,256,112s-88,4-117.36,18.63-38.75,52.52-50.27,70S49.62,224.87,42.29,234.6,29.8,305.84,32.94,336s9,48,9,48h86c14.08,0,18.66-5.29,47.46-8C207,373,238,372,256,372s50,1,81.58,4c28.8,2.73,33.53,8,47.46,8h85s5.86-17.84,9-48S477,244.33,469.71,234.6Z"
+                                    style="fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px" />
+                                <rect x="400" y="384" width="56" height="16"
+                                    style="fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px" />
+                                <rect x="56" y="384" width="56" height="16"
+                                    style="fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px" />
+                                <path
+                                    d="M364.47,309.16c-5.91-6.83-25.17-12.53-50.67-16.35S279,288,256.2,288s-33.17,1.64-57.61,4.81-42.79,8.81-50.66,16.35C136.12,320.6,153.42,333.44,167,335c13.16,1.5,39.47.95,89.31.95s76.15.55,89.31-.95C359.18,333.35,375.24,321.4,364.47,309.16Z" />
+                                <path
+                                    d="M431.57,243.05a3.23,3.23,0,0,0-3.1-3c-11.81-.42-23.8.42-45.07,6.69a93.88,93.88,0,0,0-30.08,15.06c-2.28,1.78-1.47,6.59,1.39,7.1A455.32,455.32,0,0,0,407.53,272c10.59,0,21.52-3,23.55-12.44A52.41,52.41,0,0,0,431.57,243.05Z" />
+                                <path
+                                    d="M80.43,243.05a3.23,3.23,0,0,1,3.1-3c11.81-.42,23.8.42,45.07,6.69a93.88,93.88,0,0,1,30.08,15.06c2.28,1.78,1.47,6.59-1.39,7.1A455.32,455.32,0,0,1,104.47,272c-10.59,0-21.52-3-23.55-12.44A52.41,52.41,0,0,1,80.43,243.05Z" />
+                                <line x1="432" y1="192" x2="448" y2="192"
+                                    style="fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px" />
+                                <line x1="64" y1="192" x2="80" y2="192"
+                                    style="fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px" />
+                                <path d="M78,211s46.35-12,178-12,178,12,178,12"
+                                    style="fill:none;stroke:#000;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px" />
+                            </svg> <b>Car:</b> {{car_name}}</p>
 
-            <p class="font-italic  text-md">Pickupdate: {{d.pickupdate | date}}</p>
 
-            <p class="font-italic  text-md">Pickuphour: {{d.pickuphour }}:00 </p>
+                        <p class="font-italic  text-md"><svg style="color: green" xmlns="http://www.w3.org/2000/svg"
+                                width="2em" height="2em" fill="currentColor" class="bi bi-calendar-fill"
+                                viewBox="0 0 24 24">
+                                <path
+                                    d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V5h16V4H0V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5z"
+                                    fill="green"></path>
+                            </svg> <b>Pickupdate</b>: {{d.pickupdate | date}}</p>
 
-            <p class="font-italic  text-md">Return date: {{d.returndate | date}} </p>
+                        <p class="font-italic  text-md"><svg style="color: rgb(0, 128, 0);"
+                                xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em" viewBox=" 0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12"></polyline>
+                            </svg> <b>Pickuphour:</b> {{d.pickuphour }}:00 </p>
 
-            <p class="font-italic  text-md">Return hour: {{d.returnhour}}:00 </p>
+                        <p class="font-italic  text-md">
+                            <svg style="color: red" xmlns="http://www.w3.org/2000/svg" width="1.7em" height="1.7em"
+                                fill="currentColor" class="bi bi-calendar-fill" viewBox="0 0 24 24">
+                                <path
+                                    d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V5h16V4H0V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5z"
+                                    fill="red"></path>
+                            </svg> <b>Return date:</b> {{d.returndate | date}}
+                        </p>
 
-            <p class="font-italic  text-md">Left to pay {{left_to_pay |euro}} </p>
+                        <p class="font-italic  text-md"><svg style="color: red" xmlns="http://www.w3.org/2000/svg"
+                                width="1.7em" height="1.7em" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12"></polyline>
+                            </svg> <b>Return hour:</b> {{d.returnhour}}:00 </p>
 
-            <p class="lead">The receipt will be send on your email.</p>
+                        <p class="font-italic  text-md"><svg xmlns="http://www.w3.org/2000/svg" width="2em" height="2em"
+                                fill="currentColor" class="bi bi-cash-stack" viewBox="0 0 24 24">
+                                <path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1H1zm7 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
+                                <path
+                                    d="M0 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V5zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V7a2 2 0 0 1-2-2H3z" />
+                            </svg> <b>Left to pay:</b> {{left_to_pay |euro}} </p>
+                        <p class="font-italic  text-md"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
+                                width="2em" height="2em">
+                                <path fill="currentColor"
+                                    d="M288 384h448v64H288v-64zm96-128h256v64H384v-64zM131.456 512H384v128h256V512h252.544L721.856 192H302.144L131.456 512zM896 576H704v128H320V576H128v256h768V576zM275.776 128h472.448a32 32 0 0 1 28.608 17.664l179.84 359.552A32 32 0 0 1 960 519.552V864a32 32 0 0 1-32 32H96a32 32 0 0 1-32-32V519.552a32 32 0 0 1 3.392-14.336l179.776-359.552A32 32 0 0 1 275.776 128z" />
+                            </svg><b> Reservation id :</b> {{d.reservation_id}}
 
+                        </p>
+                        <span class="font-weight-bold text-md">Save the reservation id</span>
+                        <hr>
+
+                        <p class="lead">The receipt will be send on your email.You can also see it by clicking the link
+                            below</p>
+
+                        <a href="{{ receipt_url}}" target="_blank" class="btn btn-outline-success">Receipt</a>
+
+                    </div>
+                </div>
+            </div>
 
             {% endfor %}
 
-            {% if receipt_url != None %}
-            <p class="lead">You can also see it by clicking the link below</p>
 
-            <a href="{{ receipt_url}}" target="_blank" class="btn btn-outline-success">Receipt</a>
-            {% endif %}
 
         </div>
 

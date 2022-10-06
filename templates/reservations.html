@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Check your reservation details
+{% endblock %}
+
+{% block main %}
+<div class="col-md-10 col-lg-10" style="margin-left:10%;margin-right:10%">
+    <h4 class="mb-3 text-center">See your reservation details</h4>
+
+    <form class="form-inline form-center needs-validation" novalidate action="/reservations" method="get">
+        <div class="row g-3">
+
+            <div class="col-sm-6">
+                <label for="fulname" class="form-label">Your Full name</label>
+                <input type="text" class="form-control" id="fullname" name="fullname" autocomplete="off" required>
+                <div class="invalid-feedback">
+                    Valid full name is required.
+                </div>
+            </div>
+
+            <div class="col-sm-6">
+                <label for="fullname" class="form-label">Reservation id</label>
+                <input type="number" class="form-control" id="reservation_id" name="reservation_id" min="0" required>
+                <div class="invalid-feedback">
+                    Valid reservation ID is required.
+                </div>
+            </div>
+            <button class="btn btn-outline-danger" type="submit">Continue</button>
+            <!--<button class="btn btn-outline-success sm" type="submit">Continue</button>-->
+        </div>
+
+    </form>
+    <hr class="invisiblehr">
+
+
+</div>
+<script src="/static/form-validation.js"></script>
+
+{% endblock %}

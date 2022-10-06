@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block title %}
-Cars
+Check for available cars
 {% endblock %}
 
 {% block main %}
@@ -9,19 +9,25 @@ Cars
 <div class="col-md-10 col-lg-10" style="margin-left:10%;margin-right:10%">
     <h4 class="mb-3 text-center">Check for available cars</h4>
 
-    <form class="form-inline form-center" action="/cars" method="get">
+    <form class="form-inline form-center needs-validation" novalidate action="/cars" method="get">
         <div class="row g-3">
 
             <div class="col-sm-6">
                 <label for="pickupdate" class="form-label">Pick up Date</label>
                 <input type="date" class="form-control" id="pickupdate" name="pickupdate" min="{{ min_date_p}}"
-                    max="{{ max_date_p }}">
+                    max="{{ max_date_p }}" required>
+                <div class="invalid-feedback">
+                    Valid pickup date is required.
+                </div>
             </div>
 
             <div class="col-sm-6">
                 <label for="returndate" class="form-label">Return Date</label>
                 <input type="date" class="form-control" id="returndate" name="returndate" min="{{ min_date_r }}"
-                    max="{{ max_date_r }}">
+                    max="{{ max_date_r }}" required>
+                <div class="invalid-feedback">
+                    Valid return date is required.
+                </div>
             </div>
             <button class="btn btn-outline-success sm" type="submit">Check</button>
         </div>
@@ -30,4 +36,5 @@ Cars
     <hr class="invisiblehr">
 
 </div>
+<script src="/static/form-validation.js"></script>
 {% endblock %}
