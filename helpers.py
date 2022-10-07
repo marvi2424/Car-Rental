@@ -114,8 +114,7 @@ def expire_checkout(f):
         )
         for checkout in checkouts:
             # Check if session has expired
-            print("------------CREATED---------")
-            print(checkout["created"])
+
             if epoch - checkout["created"] >= 10 * 60:
                 checkout_session = stripe.checkout.Session.retrieve(
                     checkout["checkout_id"]
@@ -123,7 +122,7 @@ def expire_checkout(f):
                 # Check if session status is open
                 if checkout_session["status"] == "open":
                     stripe.checkout.Session.expire(checkout["checkout_id"])
-                else:
+                elif checkout_session["status"] == "expired":
                     app.db.execute(
                         "DELETE FROM pending_reservations WHERE checkout_id = ?",
                         checkout_session["id"],

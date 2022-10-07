@@ -545,7 +545,7 @@ def reservations():
 
             # Check if reservation exists
             check = db.execute(
-                "SELECT FROM active_reservations WHERE name = ? AND reservation_id = ?",
+                "SELECT FROM active_reservations WHERE LOWER(name) = LOWER(?) AND reservation_id = ?",
                 name,
                 reservation_id,
             )
@@ -555,7 +555,7 @@ def reservations():
 
             elif len(check) == 1:
                 return redirect(url_for("thanks", reservation_id=reservation_id))
-            # Error checking: two reservations with same data (p.s unlikely to happen)
+            # Error checking: two reservations with same data
             else:
                 flash(
                     "Something went wrong. Please contact us if your reservation should be active.Else ignoe this message"
