@@ -418,6 +418,7 @@ def create_checkout_session():
         # Get total amount
         total_amount = total_days * day_price[0]["day_price"]
 
+        # Generate an uniqe reservation id
         while True:
             reservation_id = randrange(999999999)
             same_reservation_id = db.execute(
@@ -458,7 +459,7 @@ def create_checkout_session():
         # Insert the data in pending booking table
         db.execute(
             "INSERT INTO pending_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price, checkout_id, created) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            name,
+            name.strip(),
             strdate(pickupdate),
             pickuphour,
             strdate(returndate),
@@ -491,11 +492,13 @@ def thanks():
             "SELECT * FROM active_reservations WHERE reservation_id = ?", reservation_id
         )
         # Error checking
-        if len(data) == 0 or len(data) > 1:
+        if len(data) == 0:
             flash(
-                "Something went wrong.If you were redirected here from checkout page after a successful transaction please contact us right now.Else Ignore this message."
+                "You reservation may still be processing or it doesn't exist.Save this Reservation ID: {} and check again after a few minutes or contact us.".format(
+                    reservation_id
+                )
             )
-            return redirect("/contact")
+            return redirect("/reservations")
 
         # Get car details
         car_id = data[0]["car_id"]
@@ -546,7 +549,7 @@ def reservations():
             # Check if reservation exists
             check = db.execute(
                 "SELECT FROM active_reservations WHERE LOWER(name) = LOWER(?) AND reservation_id = ?",
-                name,
+                name.strip(),
                 reservation_id,
             )
             if len(check) == 0:
@@ -558,7 +561,7 @@ def reservations():
             # Error checking: two reservations with same data
             else:
                 flash(
-                    "Something went wrong. Please contact us if your reservation should be active.Else ignoe this message"
+                    "Something went wrong. Please contact us if your reservation should be active.Else ignore this message"
                 )
                 return redirect("/contact")
         else:
@@ -597,10 +600,7 @@ def webhook():
         email = completed["customer_details"]["email"]
         phone_number = completed["customer_details"]["phone"]
         reservation_id = completed["metadata"]["reservation_id"]
-
-        if completed["payment_status"] != "paid":
-            print("NOT PAID")
-            return "NOT PAID", 400
+        prepaid_warranty = completed["amount_total"] / 100
 
         # Get user data from pending_reservations table
         user_data = db.execute(
@@ -608,55 +608,62 @@ def webhook():
         )
 
         # Error checking
-        if len(user_data) == 0:
-            print("ERORR")
-            return "Something went wrong", 400
+        if len(user_data) == 1:
 
-        # User data
-        pending_booking_id = user_data[0]["id"]
-        name = user_data[0]["name"]
-        pickupdate = user_data[0]["pickupdate"]
-        pickuphour = user_data[0]["pickuphour"]
-        returndate = user_data[0]["returndate"]
-        returnhour = user_data[0]["returnhour"]
-        car_id = user_data[0]["car_id"]
-        total_days = user_data[0]["total_days"]
-        total_price = user_data[0]["total_price"]
+            # User data
+            pending_booking_id = user_data[0]["id"]
+            name = user_data[0]["name"]
+            pickupdate = user_data[0]["pickupdate"]
+            pickuphour = user_data[0]["pickuphour"]
+            returndate = user_data[0]["returndate"]
+            returnhour = user_data[0]["returnhour"]
+            car_id = user_data[0]["car_id"]
+            total_days = user_data[0]["total_days"]
+            total_price = user_data[0]["total_price"]
 
-        prepaid_warranty = 10 * total_days
+            """
+                Handling duplicate events. Stripe can send the same event twice or more, so to make sure that the events don't get proccesed twice, 
+                I need to check if the event has already been taken care of.
+            """
+            duplicate_reservations = db.execute(
+                "SELECT reservation_id FROM active_reservations WHERE reservation_id = ?",
+                reservation_id,
+            )
+            if len(duplicate_reservations) == 0:
+                # Insert user data into reservations_history and pending_reservations
+                db.execute(
+                    "INSERT INTO reservations_history (name, email, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    name,
+                    email,
+                    pickupdate,
+                    pickuphour,
+                    returndate,
+                    returnhour,
+                    car_id,
+                    total_days,
+                    total_price,
+                    reservation_id,
+                )
 
-        # Insert user data into reservations_history and pending_reservations
-        db.execute(
-            "INSERT INTO reservations_history (name, email, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, total_price, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            name,
-            email,
-            pickupdate,
-            pickuphour,
-            returndate,
-            returnhour,
-            car_id,
-            total_days,
-            total_price,
-            reservation_id,
-        )
+                db.execute(
+                    "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, payment_intent, prepaid, phone_number, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    name,
+                    pickupdate,
+                    pickuphour,
+                    returndate,
+                    returnhour,
+                    car_id,
+                    total_days,
+                    completed["payment_intent"],
+                    prepaid_warranty,
+                    phone_number,
+                    reservation_id,
+                )
 
-        db.execute(
-            "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, payment_intent, prepaid, phone_number, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-            name,
-            pickupdate,
-            pickuphour,
-            returndate,
-            returnhour,
-            car_id,
-            total_days,
-            completed["payment_intent"],
-            prepaid_warranty,
-            phone_number,
-            reservation_id,
-        )
-
-        # Delete data in pending_reservations table after transaction completed
-        db.execute("DELETE FROM pending_reservations WHERE id = ?", pending_booking_id)
+                # Delete data in pending_reservations table after transaction completed
+                db.execute(
+                    "DELETE FROM pending_reservations WHERE id = ?", pending_booking_id
+                )
 
     elif event_dict["type"] == "checkout.session.expired":
         # Delete data in pending_reservations table after sesssion expired
