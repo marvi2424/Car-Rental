@@ -687,7 +687,7 @@ def webhook():
         reservation_id = charge["metadata"]["reservation_id"]
 
         db.execute(
-            "INSERT INTO receipts ( receipt_url, reservation_id) VALUES (?,?,?)",
+            "INSERT INTO receipts ( receipt_url, reservation_id) VALUES (?,?)",
             charge["receipt_url"],
             reservation_id,
         )
