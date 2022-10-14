@@ -518,7 +518,7 @@ def thanks():
             data[0]["reservation_id"],
         )
         if len(receipt_url) == 0:
-            receipt_url = ["No receipt"]
+            receipt_url = None
         else:
             receipt_url = receipt_url[0]["receipt_url"]
 
@@ -651,7 +651,7 @@ def webhook():
                 )
 
                 db.execute(
-                    "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, payment_intent, prepaid, phone_number, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, prepaid, phone_number, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
                     name,
                     pickupdate,
                     pickuphour,
@@ -659,7 +659,6 @@ def webhook():
                     returnhour,
                     car_id,
                     total_days,
-                    completed["payment_intent"],
                     prepaid_warranty,
                     phone_number,
                     reservation_id,
