@@ -1,3 +1,4 @@
+from asyncio.windows_events import NULL
 import os
 from random import randrange
 import stripe
@@ -205,7 +206,7 @@ def cars():
         )
 
         if len(available_cars) == 0:
-            flash("No availble cars for these dates")
+            flash("No available cars for these dates")
             return redirect("/check")
 
         return render_template("cars.html", cars=available_cars)
@@ -221,7 +222,7 @@ def reserve():
         or not session["pickupdate"]
         or not session["returndate"]
     ):
-        flash("Select pickup and return date")
+        flash("Select pickup date and return date")
         return redirect("/check")
 
     # Via GET
@@ -446,6 +447,7 @@ def create_checkout_session():
                     "card",
                 ],
                 metadata={"reservation_id": reservation_id},
+                payment_intent_data={"metadata": {"reservation_id": reservation_id}},
                 expires_at=expires,
                 success_url=url_for(
                     "thanks", reservation_id=reservation_id, _external=True
@@ -513,16 +515,20 @@ def thanks():
 
         # Reciept url
         receipt_url = db.execute(
-            "SELECT receipt_url FROM receipts WHERE payment_intent = ?",
-            data[0]["payment_intent"],
+            "SELECT receipt_url FROM receipts WHERE reservation_id = ?",
+            data[0]["reservation_id"],
         )
+        if len(receipt_url) == 0:
+            receipt_url = ["No receipt"]
+        else:
+            receipt_url = receipt_url[0]["receipt_url"]
 
         return render_template(
             "thanks.html",
             data=data,
             car_name=car_name,
             left_to_pay=left_to_pay,
-            receipt_url=receipt_url[0]["receipt_url"],
+            receipt_url=receipt_url,
             main_photo_ref=car_details[0]["main_photo_ref"],
         )
 
@@ -667,24 +673,24 @@ def webhook():
 
     elif event_dict["type"] == "checkout.session.expired":
         # Delete data in pending_reservations table after sesssion expired
-        session_expired = event_dict["data"]["object"]
+        expired = event_dict["data"]["object"]
 
         db.execute(
             "DELETE FROM pending_reservations WHERE checkout_id = ?",
-            session_expired["id"],
+            expired["id"],
         )
 
-        print("checkout session expired")
+        print("Checkout session expired")
 
     elif event_dict["type"] == "charge.succeeded":
         charge = event_dict["data"]["object"]
-
         # Store receipt url in database
+        reservation_id = charge["metadata"]["reservation_id"]
 
         db.execute(
-            "INSERT INTO receipts (payment_intent, receipt_url) VALUES (?,?)",
-            charge["payment_intent"],
+            "INSERT INTO receipts ( receipt_url, reservation_id) VALUES (?,?,?)",
             charge["receipt_url"],
+            reservation_id,
         )
 
     elif event_dict["type"] == "payment_intent.payment_failed":
