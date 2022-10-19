@@ -103,7 +103,8 @@ Reserve
 
                   <div class="col-12">
                     <label for="pickuphour" class="form-label">Pick up Hour*</label>
-                    <select class="form-select" id="pickuphour" name="pickuphour">
+                    <select class="form-select" id="pickuphour" name="pickuphour" required>
+                      <option selected disabled value="">Pickuphour </option>
                       {% for i in range(6,24) %}
 
                       {% if i < 10 %} <option value="{{ i }}">0{{ i }}:00</option>
@@ -121,7 +122,8 @@ Reserve
 
                   <div class="col-12">
                     <label for="releasehour" class="form-label">Return Hour*</label>
-                    <select class="form-select" id="returnhour" name="returnhour">
+                    <select class="form-select" id="returnhour" name="returnhour" required>
+                      <option selected disabled value="">Returnhour</option>
                       {% for i in range(6,24) %}
 
                       {% if i < 10 %} <option value="{{ i }}">0{{ i }}:00</option>

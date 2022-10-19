@@ -195,7 +195,7 @@ def cars():
 
         # Check for available dates
         available_cars = db.execute(
-            "SELECT * FROM cars WHERE id NOT IN (SELECT car_id FROM active_reservations WHERE (? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate) OR (? < pickupdate AND ? > returndate))",
+            "SELECT * FROM cars WHERE status = 'available' AND id NOT IN (SELECT car_id FROM active_reservations WHERE (? >= pickupdate AND ? <= returndate) OR (? >= pickupdate AND ? <= returndate) OR (? < pickupdate AND ? > returndate)) ORDER BY id ASC",
             strdate(pickupdate),
             strdate(pickupdate),
             strdate(returndate),
@@ -245,9 +245,20 @@ def reserve():
         if len(car) == 0:
             flash("INVALID CAR ID")
             return redirect(
-                url_for("cars"),
-                pickupdate=session["pickupdate"],
-                returndate=session["returndate"],
+                url_for(
+                    "cars",
+                    pickupdate=session["pickupdate"],
+                    returndate=session["returndate"],
+                ),
+            )
+        elif car[0]["status"] != "available":
+            flash("Sorry car is not available at the moment")
+            return redirect(
+                url_for(
+                    "cars",
+                    pickupdate=session["pickupdate"],
+                    returndate=session["returndate"],
+                ),
             )
 
         session["car_id"] = car_id
@@ -625,6 +636,7 @@ def webhook():
             car_id = user_data[0]["car_id"]
             total_days = user_data[0]["total_days"]
             total_price = user_data[0]["total_price"]
+            paid = 0
 
             """
                 Handling duplicate events. Stripe can send the same event twice or more, so to make sure that the events don't get proccesed twice, 
@@ -651,7 +663,7 @@ def webhook():
                 )
 
                 db.execute(
-                    "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, prepaid, phone_number, reservation_id) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, prepaid, phone_number, reservation_id, paid) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                     name,
                     pickupdate,
                     pickuphour,
@@ -662,6 +674,7 @@ def webhook():
                     prepaid_warranty,
                     phone_number,
                     reservation_id,
+                    int(paid),
                 )
 
                 # Delete data in pending_reservations table after transaction completed
