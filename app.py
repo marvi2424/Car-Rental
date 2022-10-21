@@ -552,6 +552,10 @@ def thanks():
                 data[0]["name"], reservation_id
             )
             mail.send(message)
+            db.execute(
+                "UPDATE receipts SET email_send = 'TRUE' WHERE reservation_id = ?",
+                reservation_id,
+            )
 
         return render_template(
             "thanks.html",
