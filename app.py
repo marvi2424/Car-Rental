@@ -1,7 +1,7 @@
 import os
 from random import randrange
 import stripe
-
+from flask_mail import Message, Mail
 from flask import (
     Flask,
     flash,
@@ -65,6 +65,15 @@ elif not os.environ.get("ENDPOINT_SECRET"):
 
 # Set stripe private key
 stripe.api_key = os.environ.get("STRIPE_PRIVATE_KEY")
+
+# Configure email
+app.config["MAIL_DEFAULT_SENDER"] = os.environ["MAIL_DEFAULT_SENDER"]
+app.config["MAIL_PASSWORD"] = os.environ["MAIL_PASSWORD"]
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = os.environ["MAIL_DEFAULT_SENDER"]
+mail = Mail(app)
 
 
 @app.after_request
@@ -524,14 +533,25 @@ def thanks():
         left_to_pay = (day_price * int(data[0]["total_days"])) - int(data[0]["prepaid"])
 
         # Reciept url
-        receipt_url = db.execute(
-            "SELECT receipt_url FROM receipts WHERE reservation_id = ?",
+        data2 = db.execute(
+            "SELECT receipt_url,email_send FROM receipts WHERE reservation_id = ?",
             data[0]["reservation_id"],
         )
-        if len(receipt_url) == 0:
+        if len(data2) == 0:
             receipt_url = None
         else:
-            receipt_url = receipt_url[0]["receipt_url"]
+            receipt_url = data2[0]["receipt_url"]
+
+        # Send reservation id to email
+        if data2[0]["email_send"] != True:
+
+            message = Message(
+                "Car Rental - Your reservation id", recipients=[data[0]["email"]]
+            )
+            message.body = "Hello {},\nThis is your reservation id {}. Make sure to save it, as you will need it when you claim the car.\n\n\nThanks!".format(
+                data[0]["name"], reservation_id
+            )
+            mail.send(message)
 
         return render_template(
             "thanks.html",
@@ -639,7 +659,7 @@ def webhook():
             paid = 0
 
             """
-                Handling duplicate events. Stripe can send the same event twice or more, so to make sure that the events don't get proccesed twice, 
+                Handling duplicate events. Stripe can send the same event twice or more, so to make sure that the events don't get proccesed twice,
                 I need to check if the event has already been taken care of.
             """
             duplicate_reservations = db.execute(
@@ -663,7 +683,7 @@ def webhook():
                 )
 
                 db.execute(
-                    "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, prepaid, phone_number, reservation_id, paid) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO active_reservations (name, pickupdate, pickuphour, returndate, returnhour, car_id, total_days, prepaid, phone_number, reservation_id, paid,email) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                     name,
                     pickupdate,
                     pickuphour,
@@ -675,7 +695,16 @@ def webhook():
                     phone_number,
                     reservation_id,
                     int(paid),
+                    email,
                 )
+
+                message = Message(
+                    "Car Rental - Your reservation id", recipients=[email]
+                )
+                message.body = "Hello {},\nThis is your reservation id {}. Make sure to save it, as you will need it when you claim the car.\n\n\nThanks".format(
+                    name, reservation_id
+                )
+                mail.send(message)
 
                 # Delete data in pending_reservations table after transaction completed
                 db.execute(
