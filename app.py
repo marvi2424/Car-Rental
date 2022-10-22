@@ -533,29 +533,14 @@ def thanks():
         left_to_pay = (day_price * int(data[0]["total_days"])) - int(data[0]["prepaid"])
 
         # Reciept url
-        data2 = db.execute(
-            "SELECT receipt_url,email_send FROM receipts WHERE reservation_id = ?",
+        receipt_url = db.execute(
+            "SELECT receipt_url FROM receipts WHERE reservation_id = ?",
             data[0]["reservation_id"],
         )
-        if len(data2) == 0:
+        if len(receipt_url) == 0:
             receipt_url = None
         else:
-            receipt_url = data2[0]["receipt_url"]
-
-        # Send reservation id to email
-        if data2[0]["email_send"] != True:
-
-            message = Message(
-                "Car Rental - Your reservation id", recipients=[data[0]["email"]]
-            )
-            message.body = "Hello {},\nThis is your reservation id {}. Make sure to save it, as you will need it when you claim the car.\n\n\nThanks!".format(
-                data[0]["name"], reservation_id
-            )
-            mail.send(message)
-            db.execute(
-                "UPDATE receipts SET email_send = 'TRUE' WHERE reservation_id = ?",
-                reservation_id,
-            )
+            receipt_url = receipt_url[0]["receipt_url"]
 
         return render_template(
             "thanks.html",
@@ -702,10 +687,11 @@ def webhook():
                     email,
                 )
 
+                # Send reservation id in email
                 message = Message(
                     "Car Rental - Your reservation id", recipients=[email]
                 )
-                message.body = "Hello {},\nThis is your reservation id {}. Make sure to save it, as you will need it when you claim the car.\n\n\nThanks".format(
+                message.body = "Hello {},\n\n\nThis is your reservation id {}. Make sure to save it, as you will need it when you claim the car.\n\n\nThanks".format(
                     name, reservation_id
                 )
                 mail.send(message)
