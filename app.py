@@ -25,7 +25,7 @@ from helpers import (
     expire_checkout,
 )
 import time
-
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # Configure application
 app = Flask(__name__)
@@ -33,6 +33,7 @@ app = Flask(__name__)
 # Configure session to use filesystem
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_COOKIE_NAME"] = "session"
 Session(app)
 
 # Configure CS50 library to use database
@@ -76,6 +77,13 @@ app.config["MAIL_USERNAME"] = os.environ["MAIL_DEFAULT_SENDER"]
 mail = Mail(app)
 
 
+# Expire checkout page after 5 minutes
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=expire_checkout, trigger="interval", seconds=300)
+scheduler.start()
+
+
 @app.after_request
 def after_request(response):
     """Ensure responses aren't cached"""
@@ -86,14 +94,12 @@ def after_request(response):
 
 
 @app.route("/", methods=["GET"])
-@expire_checkout
 def index():
 
     return render_template("index.html")
 
 
 @app.route("/check", methods=["GET"])
-@expire_checkout
 def check():
 
     now = datetime.datetime.now()
@@ -135,7 +141,6 @@ def check():
 
 
 @app.route("/cars", methods=["GET", "POST"])
-@expire_checkout
 def cars():
 
     now = datetime.datetime.now()
@@ -221,7 +226,6 @@ def cars():
 
 
 @app.route("/reserve", methods=["GET"])
-@expire_checkout
 def reserve():
 
     if (
@@ -293,7 +297,6 @@ def reserve():
 
 
 @app.route("/contact", methods=["GET", "POST"])
-@expire_checkout
 def contact():
 
     if request.method == "POST":
@@ -322,7 +325,6 @@ def contact():
 
 
 @app.route("/faq", methods=["GET"])
-@expire_checkout
 def faq():
     # Get FAQ
     requirements = db.execute("SELECT * FROM faq WHERE section = 'Requirements'")
@@ -496,7 +498,6 @@ def create_checkout_session():
 
 
 @app.route("/thanks", methods=["GET"])
-@expire_checkout
 def thanks():
 
     # Get request
@@ -553,7 +554,6 @@ def thanks():
 
 
 @app.route("/reservations", methods=["GET"])
-@expire_checkout
 def reservations():
 
     if request.method == "GET":
