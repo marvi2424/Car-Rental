@@ -24,7 +24,6 @@ from helpers import (
     date_limits,
 )
 import time
-from apscheduler.schedulers.background import BackgroundScheduler
 
 # Configure application
 app = Flask(__name__)
