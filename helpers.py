@@ -101,24 +101,3 @@ def is_date(string):
         return True
     except ValueError:
         return False
-
-
-def expire_checkout():
-
-    # Epoch time
-    epoch = int(time.time())
-
-    checkouts = app.db.execute("SELECT checkout_id, created FROM pending_reservations")
-    for checkout in checkouts:
-        # Check if session has expired
-
-        if epoch - checkout["created"] >= 10 * 60:
-            checkout_session = stripe.checkout.Session.retrieve(checkout["checkout_id"])
-            # Check if session status is open
-            if checkout_session["status"] == "open":
-                stripe.checkout.Session.expire(checkout["checkout_id"])
-            elif checkout_session["status"] == "expired":
-                app.db.execute(
-                    "DELETE FROM pending_reservations WHERE checkout_id = ?",
-                    checkout_session["id"],
-                )

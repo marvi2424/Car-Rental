@@ -22,7 +22,6 @@ from helpers import (
     total_Days,
     is_date,
     date_limits,
-    expire_checkout,
 )
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -75,13 +74,6 @@ app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_USE_TLS"] = True
 app.config["MAIL_USERNAME"] = os.environ["MAIL_DEFAULT_SENDER"]
 mail = Mail(app)
-
-
-# Expire checkout page after 5 minutes
-
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=expire_checkout, trigger="interval", seconds=300)
-scheduler.start()
 
 
 @app.after_request
